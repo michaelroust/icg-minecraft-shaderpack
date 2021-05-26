@@ -1,6 +1,6 @@
 #version 120
 
-#include "distort.glsl"
+// #include "distort.glsl"
 
 varying vec2 TexCoords;
 
@@ -33,6 +33,12 @@ const int shadowMapResolution = 2048;
 const int noiseTextureResolution = 64;
 
 const float Ambient = 0.025f;
+
+vec2 DistortPosition(in vec2 position){
+    float CenterDistance = length(position);
+    float DistortionFactor = mix(1.0f, CenterDistance, 0.9f);
+    return position / DistortionFactor;
+}
 
 float AdjustLightmapTorch(in float torch) {
     const float K = 2.0f;
