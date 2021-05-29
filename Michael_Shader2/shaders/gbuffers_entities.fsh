@@ -21,7 +21,7 @@ void main() {
 
 	/* RENDERTARGETS: 0,1,2 */
 	gl_FragData[0] = color; //gcolor
-	gl_FragData[1] = vec4(0.0f);
+	gl_FragData[1] = vec4(lmcoord, 0.0f, 0.0f);
 	gl_FragData[2] = vec4(normal * 0.5 + 0.5, 1.0);;
 
 }

@@ -70,11 +70,11 @@ float GetShadow(float depth) {
     return step(SampleCoords.z - shadowBias, texture2D(shadowtex0, SampleCoords.xy).r);
 }
 
-vec3 gamma(vec3 color) {
+vec3 gammaToLinearSpace(vec3 color) {
 	return pow(color, vec3(2.2f));
 }
 
-vec3 invgamma(vec3 color) {
+vec3 gammaToGammaSpace(vec3 color) {
 	return pow(color, vec3(1.0f/2.2f));
 }
 
@@ -97,6 +97,8 @@ vec3 calculateLighting(in Fragment frag, in Lightmap lightmap) {
 	directLightStrength = max(0.0, directLightStrength);
 	vec3 directLight = directLightStrength * lightColor;
 
+	// Yes torch light power scales badly. Thats why they have
+	// AdjustLightMapTorch in Tutorial 3
 	vec3 torchColor = vec3(1.0f, 0.9, 0.8);
 	vec3 torchLight = torchColor * lightmap.torchLightStrength;
 
@@ -104,7 +106,7 @@ vec3 calculateLighting(in Fragment frag, in Lightmap lightmap) {
 
 	vec3 litColor = frag.albedo * (directLight + skyLight + torchLight);
 	// vec3 litColor = frag.albedo * (directLight);
-	// vec3 litColor = frag.albedo * (lightmap.skyLightStrength);
+	// vec3 litColor = frag.albedo * (pow(lightmap.torchLightStrength, 4));
 
 	return mix(litColor, frag.albedo, frag.emission);
 }
@@ -117,27 +119,19 @@ vec3 calculateLighting(in Fragment frag, in Lightmap lightmap) {
 
 void main() {
 	vec4 Color = texture2D(colortex0, texcoord);
-	vec3 Albedo = Color.rgb;
+	// vec3 Albedo = (Color.rgb);
+	vec3 Albedo = gammaToLinearSpace(Color.rgb);
 	float Emission = texture2D(colortex1, texcoord).a;
 	vec3 Normal = texture2D(colortex2, texcoord).rgb * 2.0f - 1.0f;
 
 	// float Depth = texture2D(depthtex0, texcoord).r;
 
-	// Fragment frag;
-	// frag.albedo = Albedo;
-	// frag.normal = Normal;
-	// frag.emission = Emission;
-
 	Fragment frag = Fragment(Albedo, Normal, Emission);
 	Lightmap lightmap = Lightmap(texture2D(colortex1, texcoord).r, texture2D(colortex1, texcoord).g);
 
-	// vec3 FinalColor2 = calculateLighting(frag);
-	vec3 FinalColor = calculateLighting(frag, lightmap);
 
-	// if (depth == 1.0) {
-	// 	gl_FragData[0] = Color;
-	// 	return;
-	// }
+	// vec3 FinalColor = (calculateLighting(frag, lightmap));
+	vec3 FinalColor = gammaToGammaSpace(calculateLighting(frag, lightmap));
 
 	//-----------------------------------------------------------------
 
@@ -162,6 +156,4 @@ void main() {
 	// gl_FragData[0] = vec4(Albedo, 1.0f);
 	// gl_FragData[0] = vec4(Normal, 1.0f);
 	// gl_FragData[0] = vec4(Emission);
-
-	// gl_FragData[0] = texture2D(colortex3, texcoord);
 }
