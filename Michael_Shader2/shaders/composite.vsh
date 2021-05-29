@@ -21,7 +21,7 @@ void main() {
 
 		lightVector = normalize(sunPosition);
 		lightColor = vec3(1.0);
-		skyColor = vec3(0.3);
+		skyColor = vec3(0.2);
 	} else {
 		// Night
 

@@ -29,6 +29,8 @@ uniform mat4 gbufferModelViewInverse;
 uniform mat4 shadowProjection;
 uniform mat4 shadowModelView;
 
+uniform vec3 cameraPosition;
+
 // Direction of the sun (not normalized!)
 // A vec3 indicating the position of the sun in eye space.
 uniform vec3 sunPosition;
@@ -80,6 +82,7 @@ vec3 gammaToGammaSpace(vec3 color) {
 
 
 //============================================================================
+// Youtube Tutorial 4, 5
 
 struct Lightmap {
 	float torchLightStrength;
@@ -90,6 +93,7 @@ struct Fragment {
 	vec3 albedo;
 	vec3 normal;
 	float emission;
+	float depth;
 };
 
 vec3 calculateLighting(in Fragment frag, in Lightmap lightmap) {
@@ -98,7 +102,7 @@ vec3 calculateLighting(in Fragment frag, in Lightmap lightmap) {
 	vec3 directLight = directLightStrength * lightColor;
 
 	// Yes torch light power scales badly. Thats why they have
-	// AdjustLightMapTorch in Tutorial 3
+	// AdjustLightMapTorch in Tutorial 3 of that github repo
 	vec3 torchColor = vec3(1.0f, 0.9, 0.8);
 	vec3 torchLight = torchColor * lightmap.torchLightStrength;
 
@@ -111,13 +115,67 @@ vec3 calculateLighting(in Fragment frag, in Lightmap lightmap) {
 	return mix(litColor, frag.albedo, frag.emission);
 }
 
+//============================================================================
+// Youtube Tutorial 7
+
+vec4 getCameraSpacePosition(in vec2 coord, in float depth) {
+	vec4 positionNdcSpace = vec4(coord.s * 2.0 - 1.0, coord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0);
+	vec4 positionCameraSpace = gbufferProjectionInverse * positionNdcSpace;
+
+	return positionCameraSpace / positionCameraSpace.w;
+}
+
+vec4 getWorldSpacePosition(in vec2 coord, in float depth) {
+	vec4 positionCameraSpace = getCameraSpacePosition(coord, depth);
+	vec4 positionWorldSpace = gbufferModelViewInverse * positionCameraSpace;
+	positionWorldSpace.xyz += cameraPosition.xyz;
+	return positionWorldSpace;
+}
+
+vec3 getShadowSpacePosition(in vec2 coord, in float depth) {
+	vec4 positionWorldSpace = getWorldSpacePosition(coord, depth);
+
+	positionWorldSpace.xyz -= cameraPosition;
+	vec4 positionShadowSpace = shadowModelView * positionWorldSpace;
+	positionShadowSpace = shadowProjection * positionShadowSpace;
+	positionShadowSpace /= positionShadowSpace.w;
+
+	positionShadowSpace.xyz = positionShadowSpace.xyz * 0.5 + 0.5;
+
+	return positionShadowSpace.xyz;
+}
+
+// 1 in sun. 0 in sun shadow.
+float getSunVisibility(in vec2 coord, in float depth) {
+	vec3 shadowCoord = getShadowSpacePosition(coord, depth);
+	float shadowMapSample = texture2D(shadowtex0, shadowCoord.st).r;
+	return step(shadowCoord.z - shadowMapSample, 0.0001);
+}
+
+vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap) {
+	float directLightStrength = dot(frag.normal, lightVector);
+	directLightStrength = max(0.0, directLightStrength);
+	vec3 directLight = directLightStrength * lightColor * getSunVisibility(texcoord, frag.depth);
+
+	vec3 torchColor = vec3(1.0f, 0.9, 0.8);
+	vec3 torchLight = torchColor * pow(lightmap.torchLightStrength, 4);
+
+	vec3 skyLight = skyColor * pow(lightmap.skyLightStrength, 2);
+
+	vec3 litColor = frag.albedo * (directLight + skyLight + torchLight);
+
+	return mix(litColor, frag.albedo, frag.emission);
+}
 
 //============================================================================
 
 // This tells which gl_FragDatas we will be writing to
-/* RENDERTARGETS: 0 */
+/* RENDERTARGETS: 0,1,2 */
 
 void main() {
+	//=================================================================
+	// Youtube Tutorial 4, 5
+
 	vec4 Color = texture2D(colortex0, texcoord);
 	// vec3 Albedo = (Color.rgb);
 	vec3 Albedo = gammaToLinearSpace(Color.rgb);
@@ -126,9 +184,8 @@ void main() {
 
 	// float Depth = texture2D(depthtex0, texcoord).r;
 
-	Fragment frag = Fragment(Albedo, Normal, Emission);
+	Fragment frag = Fragment(Albedo, Normal, Emission, 0.0);
 	Lightmap lightmap = Lightmap(texture2D(colortex1, texcoord).r, texture2D(colortex1, texcoord).g);
-
 
 	// vec3 FinalColor = (calculateLighting(frag, lightmap));
 	vec3 FinalColor = gammaToGammaSpace(calculateLighting(frag, lightmap));
@@ -148,6 +205,24 @@ void main() {
 	//-----------------------------------------------------------------
 
 	gl_FragData[0] = vec4(FinalColor, 1.0f);
+
+	//=================================================================
+	// Youtube Tutorial 7
+
+	vec3 finalComposite = texture2D(colortex0, texcoord).rgb;
+	vec3 finalCompositeNormal = texture2D(colortex2, texcoord).rgb;
+	float finalCompositeDepth = texture2D(depthtex0, texcoord).r;
+
+	Fragment frag2 = Fragment(gammaToLinearSpace(finalComposite), Normal, Emission, finalCompositeDepth);
+
+	finalComposite = gammaToGammaSpace(calculateLighting2(texcoord, frag2, lightmap));
+
+	gl_FragData[0] = vec4(finalComposite, 1.);
+	gl_FragData[1] = vec4(finalCompositeNormal, 1.);
+	gl_FragData[2] = vec4(finalCompositeDepth);
+
+	//=================================================================
+
 
 	//-----------------------------------------------------------------
 	//Debug
