@@ -15,7 +15,7 @@ varying vec3 skyColor;
 uniform sampler2D colortex0; 	// 0  - gcolor/colortex0 has its color cleared to the current fog color before rendering.
 uniform sampler2D colortex1; 	// 1  - gdepth/colortex1 has its color cleared to solid white before rendering and uses a higher precision storage buffer suitable for storing depth values.
 uniform sampler2D colortex2; 	// 2  - gnormal/colortex2 The rest have their color cleared to black with 0 alpha.
-uniform sampler2D colortex3; 	// 3
+// uniform sampler2D colortex3; 	// 3
 // uniform sampler2D colortex4; 	// 7
 // uniform sampler2D colortex5; 	// 8
 // uniform sampler2D colortex6; 	// 9
@@ -24,6 +24,8 @@ uniform sampler2D colortex3; 	// 3
 uniform sampler2D depthtex0; 	// Apparently contains depth info
 uniform sampler2D shadowtex0;	// Contains a shadow map (rendered from sun position, need to change to eye space to use this, I think).
 
+uniform sampler2D noisetex;
+
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
 uniform mat4 shadowProjection;
@@ -31,19 +33,24 @@ uniform mat4 shadowModelView;
 
 uniform vec3 cameraPosition;
 
+// uniform int viewHeight;
+// uniform int viewWidth;
+
 // Direction of the sun (not normalized!)
 // A vec3 indicating the position of the sun in eye space.
-uniform vec3 sunPosition;
+// uniform vec3 sunPosition;
 
 //----------------------------------------------------------------------------
 // Optifine Constants
 
-
-
 // const int shadowMapResolution = 32;
 // const int shadowMapResolution = 1024;
+// const int shadowMapResolution = 4096;
 const int shadowMapResolution = 16384;
+// const int shadowMapResolution = 32768;
 const float sunPathRotation = -10.0f;
+
+const int noiseTextureResolution = 64;
 
 //----------------------------------------------------------------------------
 // Our constants
@@ -116,7 +123,7 @@ vec3 calculateLighting(in Fragment frag, in Lightmap lightmap) {
 }
 
 //============================================================================
-// Youtube Tutorial 7
+// Youtube Tutorial 7, 8
 
 vec4 getCameraSpacePosition(in vec2 coord, in float depth) {
 	vec4 positionNdcSpace = vec4(coord.s * 2.0 - 1.0, coord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0);
@@ -145,11 +152,39 @@ vec3 getShadowSpacePosition(in vec2 coord, in float depth) {
 	return positionShadowSpace.xyz;
 }
 
+mat2 getRotationMatrix(in vec2 coord) {
+
+	// vec2 noiseTexCoord = coord * vec2(viewWidth / noiseTextureResolution, viewHeight / noiseTextureResolution); // Seems it doesn't rescale things well enough
+	vec2 noiseTexCoord = vec2(mod(coord.x, noiseTextureResolution), mod(coord.y, noiseTextureResolution));
+	float theta = texture2D(noisetex, noiseTexCoord).r;
+
+	return mat2(
+		cos(theta), -sin(theta),
+		sin(theta), cos(theta)
+	);
+}
+
 // 1 in sun. 0 in sun shadow.
 float getSunVisibility(in vec2 coord, in float depth) {
 	vec3 shadowCoord = getShadowSpacePosition(coord, depth);
-	float shadowMapSample = texture2D(shadowtex0, shadowCoord.st).r;
-	return step(shadowCoord.z - shadowMapSample, 0.0001);
+
+	float visibility = 0.0;
+
+	mat2 rotationMatrix = getRotationMatrix(coord);
+	// PCF filtering
+	for (int y = -3; y <= 3; y++) {
+		for (int x = -3; x <= 3; x++) {
+			vec2 offset = vec2(x,y) / shadowMapResolution;
+			offset = rotationMatrix * offset;
+
+			float shadowMapSample = texture2D(shadowtex0, shadowCoord.xy + offset).r;
+
+			visibility += step(shadowCoord.z - shadowMapSample, 0.0001);
+		}
+	}
+
+	// return visibility * 0.111; // Same as / 9
+	return visibility / 49; // Same as / 9
 }
 
 vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap) {
@@ -184,11 +219,11 @@ void main() {
 
 	// float Depth = texture2D(depthtex0, texcoord).r;
 
-	Fragment frag = Fragment(Albedo, Normal, Emission, 0.0);
+	// Fragment frag = Fragment(Albedo, Normal, Emission, 0.0);
 	Lightmap lightmap = Lightmap(texture2D(colortex1, texcoord).r, texture2D(colortex1, texcoord).g);
 
 	// vec3 FinalColor = (calculateLighting(frag, lightmap));
-	vec3 FinalColor = gammaToGammaSpace(calculateLighting(frag, lightmap));
+	// vec3 FinalColor = gammaToGammaSpace(calculateLighting(frag, lightmap));
 
 	//-----------------------------------------------------------------
 
@@ -204,7 +239,7 @@ void main() {
 
 	//-----------------------------------------------------------------
 
-	gl_FragData[0] = vec4(FinalColor, 1.0f);
+	// gl_FragData[0] = vec4(FinalColor, 1.0f);
 
 	//=================================================================
 	// Youtube Tutorial 7
@@ -213,7 +248,7 @@ void main() {
 	vec3 finalCompositeNormal = texture2D(colortex2, texcoord).rgb;
 	float finalCompositeDepth = texture2D(depthtex0, texcoord).r;
 
-	Fragment frag2 = Fragment(gammaToLinearSpace(finalComposite), Normal, Emission, finalCompositeDepth);
+	Fragment frag2 = Fragment(Albedo, Normal, Emission, finalCompositeDepth);
 
 	finalComposite = gammaToGammaSpace(calculateLighting2(texcoord, frag2, lightmap));
 
@@ -231,4 +266,6 @@ void main() {
 	// gl_FragData[0] = vec4(Albedo, 1.0f);
 	// gl_FragData[0] = vec4(Normal, 1.0f);
 	// gl_FragData[0] = vec4(Emission);
+
+	// gl_FragData[0] = texture2D(noisetex, texcoord);
 }
