@@ -138,12 +138,22 @@ mat2 getRotationMatrix(float theta) {
 //============================================================================
 // Lighting
 
-float getShadow(in vec2 coord, in float depth) {
+// Use with offset = vec2(0.) for simple hard shadows
+float getHardShadow(in vec2 coord, in vec2 offset, in float depth) {
+
 	vec3 shadowCoord = getShadowSpacePosition(coord, depth);
+	float shadowMapSample = texture2D(shadowtex0, shadowCoord.xy + offset).r;
 
-	float visibility = 0.0;
+	float visibility = step(shadowCoord.z - shadowMapSample, shadowBias);
 
-	int kernel_radius = 3; // Could be made a const (or it could be useful for PCSS)
+	return visibility;
+}
+
+float getSoftShadow(in vec2 coord, in float depth) {
+
+	float visibilitySample = 0.0;
+
+	int kernel_radius = 3; // Could be made a const
 
 	mat2 rotationMatrix = getRotationMatrix(getRandomAngle(coord));
 
@@ -153,19 +163,17 @@ float getShadow(in vec2 coord, in float depth) {
 			vec2 offset = vec2(x,y) / shadowMapResolution;
 			offset = rotationMatrix * offset;
 
-			float shadowMapSample = texture2D(shadowtex0, shadowCoord.xy + offset).r;
-
-			visibility += step(shadowCoord.z - shadowMapSample, shadowBias);
+			visibilitySample += getHardShadow(coord, offset, depth);
 		}
 	}
 
-	return visibility / pow((2 * kernel_radius + 1), 2);
+	return visibilitySample / pow((2 * kernel_radius + 1), 2);
 }
 
 vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap) {
 	float directLightStrength = dot(frag.normal, lightVector);
 	directLightStrength = max(0.0, directLightStrength);
-	vec3 directLight = directLightStrength * lightColor * getShadow(texcoord, frag.depth);
+	vec3 directLight = directLightStrength * lightColor * getSoftShadow(texcoord, frag.depth);
 
 	vec3 torchColor = vec3(1.0f, 0.9, 0.8);
 	vec3 torchLight = torchColor * pow(lightmap.torchLightStrength, 4);
