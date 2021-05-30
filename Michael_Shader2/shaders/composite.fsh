@@ -170,10 +170,12 @@ float getSunVisibility(in vec2 coord, in float depth) {
 
 	float visibility = 0.0;
 
+	int kernel_radius = 3; // Could be made a const (or it could be useful for PCSS)
+
 	mat2 rotationMatrix = getRotationMatrix(coord);
 	// PCF filtering
-	for (int y = -3; y <= 3; y++) {
-		for (int x = -3; x <= 3; x++) {
+	for (int y = -kernel_radius; y <= kernel_radius; y++) {
+		for (int x = -kernel_radius; x <= kernel_radius; x++) {
 			vec2 offset = vec2(x,y) / shadowMapResolution;
 			offset = rotationMatrix * offset;
 
@@ -183,8 +185,7 @@ float getSunVisibility(in vec2 coord, in float depth) {
 		}
 	}
 
-	// return visibility * 0.111; // Same as / 9
-	return visibility / 49; // Same as / 9
+	return visibility / pow((2 * kernel_radius + 1), 2); // Same as / 9
 }
 
 vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap) {
