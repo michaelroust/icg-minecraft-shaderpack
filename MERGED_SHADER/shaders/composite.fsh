@@ -1,6 +1,5 @@
 #version 120
 
-
 //----------------------------------------------------------------------------
 // Varyings
 
@@ -12,9 +11,9 @@ varying vec3 skyColor;
 //----------------------------------------------------------------------------
 // Uniforms
 
-uniform sampler2D colortex0; 	// 0  - gcolor/colortex0 has its color cleared to the current fog color before rendering.
-uniform sampler2D colortex1; 	// 1  - gdepth/colortex1 has its color cleared to solid white before rendering and uses a higher precision storage buffer suitable for storing depth values.
-uniform sampler2D colortex2; 	// 2  - gnormal/colortex2 The rest have their color cleared to black with 0 alpha.
+uniform sampler2D colortex0; 	// gcolor/colortex0 has its color cleared to the current fog color before rendering.
+uniform sampler2D colortex1; 	// gdepth/colortex1 has its color cleared to solid white before rendering and uses a higher precision storage buffer suitable for storing depth values.
+uniform sampler2D colortex2; 	// gnormal/colortex2 The rest have their color cleared to black with 0 alpha.
 // uniform sampler2D colortex3; 	// 3
 // uniform sampler2D colortex4; 	// 7
 // uniform sampler2D colortex5; 	// 8
@@ -58,29 +57,12 @@ const int noiseTextureResolution = 64;
 //----------------------------------------------------------------------------
 // Our constants
 
-// const float shadowBias = 0.0f;
-const float shadowBias = 0.001f; // Reasonable values within [0.001, 0.000001]
-const float intensityAmbientCoeff = 0.2f;
+const float shadowBias = 0.0005; // Reasonable values within [0.001, 0.000001]
 
 //----------------------------------------------------------------------------
 
 //============================================================================
-
-// vec3 EyeToWorldSpace()
-
-
-float GetShadow(float depth) {
-	// Create a 3D vector with (screenX, screenY, depth) and rescale to [-1, 1]
-    vec3 ClipSpace = vec3(texCoord, depth) * 2.0f - 1.0f;
-
-	//
-    vec4 ViewW = gbufferProjectionInverse * vec4(ClipSpace, 1.0f);
-    vec3 View = ViewW.xyz / ViewW.w;
-    vec4 World = gbufferModelViewInverse * vec4(View, 1.0f);
-    vec4 ShadowSpace = shadowProjection * shadowModelView * World;
-    vec3 SampleCoords = ShadowSpace.xyz * 0.5f + 0.5f;
-    return step(SampleCoords.z - shadowBias, texture2D(shadowtex0, SampleCoords.xy).r);
-}
+// Gamma Correction
 
 vec3 gammaToLinearSpace(vec3 color) {
 	return pow(color, vec3(2.2f));
@@ -89,7 +71,6 @@ vec3 gammaToLinearSpace(vec3 color) {
 vec3 gammaToGammaSpace(vec3 color) {
 	return pow(color, vec3(1.0f/2.2f));
 }
-
 
 //============================================================================
 // Youtube Tutorial 4, 5
@@ -106,27 +87,10 @@ struct Fragment {
 	float depth;
 };
 
-vec3 calculateLighting(in Fragment frag, in Lightmap lightmap) {
-	float directLightStrength = dot(frag.normal, lightVector);
-	directLightStrength = max(0.0, directLightStrength);
-	vec3 directLight = directLightStrength * lightColor;
-
-	// Yes torch light power scales badly. Thats why they have
-	// AdjustLightMapTorch in Tutorial 3 of that github repo
-	vec3 torchColor = vec3(1.0f, 0.9, 0.8);
-	vec3 torchLight = torchColor * lightmap.torchLightStrength;
-
-	vec3 skyLight = skyColor * lightmap.skyLightStrength;
-
-	vec3 litColor = frag.albedo * (directLight + skyLight + torchLight);
-	// vec3 litColor = frag.albedo * (directLight);
-	// vec3 litColor = frag.albedo * (pow(lightmap.torchLightStrength, 4));
-
-	return mix(litColor, frag.albedo, frag.emission);
-}
-
 //============================================================================
-// Youtube Tutorial 7, 8
+// Space Transformation Functions
+
+// TODO Refactor these!
 
 vec4 getCameraSpacePosition(in vec2 coord, in float depth) {
 	vec4 positionNdcSpace = vec4(coord.s * 2.0 - 1.0, coord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0);
@@ -155,29 +119,35 @@ vec3 getShadowSpacePosition(in vec2 coord, in float depth) {
 	return positionShadowSpace.xyz;
 }
 
-mat2 getRotationMatrix(in vec2 coord) {
+//============================================================================
+// Randomness / noise
 
-	// vec2 noiseTexCoord = coord * vec2(viewWidth / noiseTextureResolution, viewHeight / noiseTextureResolution); // Seems it doesn't rescale things well enough
+float getRandomAngle(in vec2 coord) {
 	vec2 noiseTexCoord = vec2(mod(coord.x, noiseTextureResolution), mod(coord.y, noiseTextureResolution));
 	float theta = texture2D(noisetex, noiseTexCoord).r;
+	return theta;
+}
 
+mat2 getRotationMatrix(float theta) {
 	return mat2(
 		cos(theta), -sin(theta),
 		sin(theta), cos(theta)
 	);
 }
 
-// 1 in sun. 0 in sun shadow.
-float getSunVisibility(in vec2 coord, in float depth) {
+//============================================================================
+// Lighting
+
+float getShadow(in vec2 coord, in float depth) {
 	vec3 shadowCoord = getShadowSpacePosition(coord, depth);
 
 	float visibility = 0.0;
 
 	int kernel_radius = 3; // Could be made a const (or it could be useful for PCSS)
 
-	mat2 rotationMatrix = getRotationMatrix(coord);
-	// mat2 rotationMatrix = mat2(1.0,0.0,0.0,1.0);
-	// PCF filtering
+	mat2 rotationMatrix = getRotationMatrix(getRandomAngle(coord));
+
+	// PCF filtering with simple box kernel
 	for (int y = -kernel_radius; y <= kernel_radius; y++) {
 		for (int x = -kernel_radius; x <= kernel_radius; x++) {
 			vec2 offset = vec2(x,y) / shadowMapResolution;
@@ -185,7 +155,7 @@ float getSunVisibility(in vec2 coord, in float depth) {
 
 			float shadowMapSample = texture2D(shadowtex0, shadowCoord.xy + offset).r;
 
-			visibility += step(shadowCoord.z - shadowMapSample, 0.0005);
+			visibility += step(shadowCoord.z - shadowMapSample, shadowBias);
 		}
 	}
 
@@ -195,7 +165,7 @@ float getSunVisibility(in vec2 coord, in float depth) {
 vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap) {
 	float directLightStrength = dot(frag.normal, lightVector);
 	directLightStrength = max(0.0, directLightStrength);
-	vec3 directLight = directLightStrength * lightColor * getSunVisibility(texcoord, frag.depth);
+	vec3 directLight = directLightStrength * lightColor * getShadow(texcoord, frag.depth);
 
 	vec3 torchColor = vec3(1.0f, 0.9, 0.8);
 	vec3 torchLight = torchColor * pow(lightmap.torchLightStrength, 4);
