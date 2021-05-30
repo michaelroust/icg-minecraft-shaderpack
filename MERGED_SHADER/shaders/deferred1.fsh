@@ -24,7 +24,7 @@ const bool colortex4MipmapEnabled = true;
 
 //Common Variables//
 
-
+// TODO Refactor
 mat2 getRotationMatrix(in vec2 coord) {
 
 	// vec2 noiseTexCoord = coord * vec2(viewWidth / noiseTextureResolution, viewHeight / noiseTextureResolution); // Seems it doesn't rescale things well enough

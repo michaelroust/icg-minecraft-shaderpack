@@ -73,49 +73,33 @@ vec3 gammaToGammaSpace(vec3 color) {
 }
 
 //============================================================================
-
-// struct Lightmap {
-// 	float torchLightStrength;
-// 	float skyLightStrength;
-// };
-
-// struct Fragment {
-// 	vec3 albedo;
-// 	vec3 normal;
-// 	float emission;
-// 	float depth;
-// };
-
-//============================================================================
 // Space Transformation Functions
 
-// TODO Refactor space function!
-
 vec4 getCameraSpacePosition(in vec2 coord, in float depth) {
-	vec4 positionNdcSpace = vec4(coord.s * 2.0 - 1.0, coord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0);
-	vec4 positionCameraSpace = gbufferProjectionInverse * positionNdcSpace;
+	// Normalized Device Coordinates
+	vec4 posNdcSpace = vec4(vec3(coord.x, coord.y, depth) * 2.0 - 1.0, 1.0);
+	vec4 posCameraSpace = gbufferProjectionInverse * posNdcSpace;
 
-	return positionCameraSpace / positionCameraSpace.w;
+	return posCameraSpace / posCameraSpace.w;
 }
 
 vec4 getWorldSpacePosition(in vec2 coord, in float depth) {
-	vec4 positionCameraSpace = getCameraSpacePosition(coord, depth);
-	vec4 positionWorldSpace = gbufferModelViewInverse * positionCameraSpace;
-	positionWorldSpace.xyz += cameraPosition.xyz;
-	return positionWorldSpace;
+	vec4 posCameraSpace = getCameraSpacePosition(coord, depth);
+	vec4 posWorldSpace = gbufferModelViewInverse * posCameraSpace;
+	posWorldSpace.xyz += cameraPosition.xyz;
+	return posWorldSpace;
 }
 
 vec3 getShadowSpacePosition(in vec2 coord, in float depth) {
-	vec4 positionWorldSpace = getWorldSpacePosition(coord, depth);
+	vec4 posWorldSpace = getWorldSpacePosition(coord, depth);
 
-	positionWorldSpace.xyz -= cameraPosition;
-	vec4 positionShadowSpace = shadowModelView * positionWorldSpace;
-	positionShadowSpace = shadowProjection * positionShadowSpace;
-	positionShadowSpace /= positionShadowSpace.w;
+	posWorldSpace.xyz -= cameraPosition;
+	vec4 posShadowSpace = shadowModelView * posWorldSpace;
+	posShadowSpace = shadowProjection * posShadowSpace;
+	posShadowSpace /= posShadowSpace.w;
 
-	positionShadowSpace.xyz = positionShadowSpace.xyz * 0.5 + 0.5;
-
-	return positionShadowSpace.xyz;
+	posShadowSpace.xyz = posShadowSpace.xyz * 0.5 + 0.5;
+	return posShadowSpace.xyz;
 }
 
 //============================================================================
@@ -169,32 +153,22 @@ float getSoftShadow(in vec2 coord, in float depth) {
 	return visibilitySample / pow((2 * kernel_radius + 1), 2);
 }
 
-struct Lightmap {
-	float torchLightStrength;
-	float skyLightStrength;
-};
+vec3 calculateLighting(in vec2 texCoord, in vec3 albedo, in vec3 normal, in float emission,
+		in float depth, in float torchLightStrength, in float skyLightStrength) {
 
-struct Fragment {
-	vec3 albedo;
-	vec3 normal;
-	float emission;
-	float depth;
-};
-
-// TODO refactor this function a bit
-vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap) {
-	float directLightStrength = dot(frag.normal, lightVector);
+	float directLightStrength = dot(normal, lightVector);
 	directLightStrength = max(0.0, directLightStrength);
-	vec3 directLight = directLightStrength * lightColor * getSoftShadow(texcoord, frag.depth);
 
-	vec3 torchColor = vec3(1.0f, 0.9, 0.8);
-	vec3 torchLight = torchColor * pow(lightmap.torchLightStrength, 4);
+	vec3 directLightColor = directLightStrength * lightColor * getSoftShadow(texCoord, depth);
 
-	vec3 skyLight = skyColor * pow(lightmap.skyLightStrength, 2);
+	vec3 torchColor = vec3(1, 0.85, 0.7);
+	vec3 torchLightColor = torchColor * pow(torchLightStrength, 4);
 
-	vec3 litColor = frag.albedo * (directLight + skyLight + torchLight);
+	vec3 skyLightColor = skyColor * pow(skyLightStrength, 2);
 
-	return mix(litColor, frag.albedo, frag.emission);
+	vec3 litColor = albedo * (directLightColor + skyLightColor + torchLightColor);
+
+	return mix(litColor, albedo, emission);
 }
 
 //============================================================================
@@ -210,6 +184,9 @@ void main() {
 	vec3 albedo = gammaToLinearSpace(texColor.rgb);
 
 	vec4 lightingData = texture2D(colortex1, texCoord);
+
+	float torchLightStrength = lightingData.r;
+	float skyLightStrength = lightingData.g;
 	float emission = lightingData.b;
 
 	vec3 normal = texture2D(colortex2, texCoord).rgb * 2.0f - 1.0f;
@@ -219,10 +196,7 @@ void main() {
 	//=================================================================
 	// Run calculations
 
-	Fragment frag = Fragment(albedo, normal, emission, depth);
-	Lightmap lightmap = Lightmap(lightingData.r, lightingData.g);
-
-	vec3 finalColor = gammaToGammaSpace(calculateLighting2(texCoord, frag, lightmap));
+	vec3 finalColor = gammaToGammaSpace(calculateLighting(texCoord, albedo, normal, emission, depth, torchLightStrength, skyLightStrength));
 
 	gl_FragData[0] = vec4(finalColor, 1.);
 	gl_FragData[1] = vec4(normal, 1.);
