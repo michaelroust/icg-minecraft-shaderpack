@@ -90,7 +90,7 @@ struct Fragment {
 //============================================================================
 // Space Transformation Functions
 
-// TODO Refactor these!
+// TODO Refactor space function!
 
 vec4 getCameraSpacePosition(in vec2 coord, in float depth) {
 	vec4 positionNdcSpace = vec4(coord.s * 2.0 - 1.0, coord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0);
@@ -138,7 +138,7 @@ mat2 getRotationMatrix(float theta) {
 //============================================================================
 // Lighting
 
-// Use with offset = vec2(0.) for simple hard shadows
+// Use with offset = vec2(0.) for plain hard shadows
 float getHardShadow(in vec2 coord, in vec2 offset, in float depth) {
 
 	vec3 shadowCoord = getShadowSpacePosition(coord, depth);
@@ -170,6 +170,7 @@ float getSoftShadow(in vec2 coord, in float depth) {
 	return visibilitySample / pow((2 * kernel_radius + 1), 2);
 }
 
+// TODO refactor this function a bit
 vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap) {
 	float directLightStrength = dot(frag.normal, lightVector);
 	directLightStrength = max(0.0, directLightStrength);
@@ -192,57 +193,31 @@ vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap
 
 void main() {
 	//=================================================================
-	// Youtube Tutorial 4, 5
+	// Read values from color textures
 
-	vec4 Color = texture2D(colortex0, texCoord);
-	vec3 Albedo = gammaToLinearSpace(Color.rgb);
-	float Emission = texture2D(colortex1, texCoord).b;
-	vec3 Normal = texture2D(colortex2, texCoord).rgb * 2.0f - 1.0f;
+	vec4 texColor = texture2D(colortex0, texCoord);
+	vec3 albedo = gammaToLinearSpace(texColor.rgb);
 
-	// float Depth = texture2D(depthtex0, texcoord).r;
+	vec4 lightingData = texture2D(colortex1, texCoord);
+	float emission = lightingData.b;
 
-	// Fragment frag = Fragment(Albedo, Normal, Emission, 0.0);
-	Lightmap lightmap = Lightmap(texture2D(colortex1, texCoord).r, texture2D(colortex1, texCoord).g);
+	vec3 normal = texture2D(colortex2, texCoord).rgb * 2.0f - 1.0f;
 
-	// vec3 FinalColor = (calculateLighting(frag, lightmap));
-	// vec3 FinalColor = gammaToGammaSpace(calculateLighting(frag, lightmap));
-
-	//-----------------------------------------------------------------
-
-	// The Diffuse Light Contribution
-	// float DirectLightStrength = dot(Normal, lightVector);
-	// DirectLightStrength = max(0.0, DirectLightStrength);
-
-	// float AmbientLightStrength = 0.3;
-
-	// vec3 LitColor = Albedo * (DirectLightStrength + AmbientLightStrength);
-
-	// vec3 FinalColor = mix(LitColor, Albedo, Emission);
-
-	//-----------------------------------------------------------------
-
-	// gl_FragData[0] = vec4(FinalColor, 1.0f);
+	float depth = texture2D(depthtex0, texCoord).r;
 
 	//=================================================================
-	// Youtube Tutorial 7
+	// Run calculations
 
-	vec3 finalComposite = texture2D(colortex0, texCoord).rgb;
-	vec3 finalCompositeNormal = texture2D(colortex2, texCoord).rgb;
-	float finalCompositeDepth = texture2D(depthtex0, texCoord).r;
+	Fragment frag = Fragment(albedo, normal, emission, depth);
+	Lightmap lightmap = Lightmap(lightingData.r, lightingData.g);
 
-	Fragment frag2 = Fragment(Albedo, Normal, Emission, finalCompositeDepth);
+	vec3 finalColor = gammaToGammaSpace(calculateLighting2(texCoord, frag, lightmap));
 
-	// finalComposite = (calculateLighting2(texcoord, frag2, lightmap));
-	finalComposite = gammaToGammaSpace(calculateLighting2(texCoord, frag2, lightmap));
-
-	gl_FragData[0] = vec4(finalComposite, 1.);
-	gl_FragData[1] = vec4(finalCompositeNormal, 1.);
-	gl_FragData[2] = vec4(finalCompositeDepth);
+	gl_FragData[0] = vec4(finalColor, 1.);
+	gl_FragData[1] = vec4(normal, 1.);
+	gl_FragData[2] = vec4(depth);
 
 	//=================================================================
-
-
-	//-----------------------------------------------------------------
 	//Debug
 
 	// gl_FragData[0] = Color;
