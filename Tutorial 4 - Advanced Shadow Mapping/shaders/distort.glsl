@@ -1,6 +1,6 @@
 // State of include guard
-#ifndef DISTORT_GLSL
-#define DISTORT_GLSL
+// #ifndef DISTORT_GLSL
+// #define DISTORT_GLSL
 
 vec2 DistortPosition(in vec2 position){
     float CenterDistance = length(position);
@@ -9,4 +9,4 @@ vec2 DistortPosition(in vec2 position){
 }
 
 // End of include guard
-#endif
+// #endif
