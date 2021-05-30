@@ -73,19 +73,18 @@ vec3 gammaToGammaSpace(vec3 color) {
 }
 
 //============================================================================
-// Youtube Tutorial 4, 5
 
-struct Lightmap {
-	float torchLightStrength;
-	float skyLightStrength;
-};
+// struct Lightmap {
+// 	float torchLightStrength;
+// 	float skyLightStrength;
+// };
 
-struct Fragment {
-	vec3 albedo;
-	vec3 normal;
-	float emission;
-	float depth;
-};
+// struct Fragment {
+// 	vec3 albedo;
+// 	vec3 normal;
+// 	float emission;
+// 	float depth;
+// };
 
 //============================================================================
 // Space Transformation Functions
@@ -169,6 +168,18 @@ float getSoftShadow(in vec2 coord, in float depth) {
 
 	return visibilitySample / pow((2 * kernel_radius + 1), 2);
 }
+
+struct Lightmap {
+	float torchLightStrength;
+	float skyLightStrength;
+};
+
+struct Fragment {
+	vec3 albedo;
+	vec3 normal;
+	float emission;
+	float depth;
+};
 
 // TODO refactor this function a bit
 vec3 calculateLighting2(in vec2 texcoord, in Fragment frag, in Lightmap lightmap) {
