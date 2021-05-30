@@ -85,15 +85,19 @@ void main() {
 	vec4 color = texture2D(composite, texcoord.st);
     // gl_FragColor = vec4(color.rgb, 0.0);
 
-    vec3 fragpos = vec3(texcoord.st, texture2D(depthtex0, texcoord.st).r);
+    float wave = texture2D(gaux2,texcoord.xy).g;
 
-    fragpos = nvec3(gbufferProjectionInverse * nvec4(fragpos * 2.0 - 1.0));
+    if (wave > 0.0) {
+        vec3 fragpos = vec3(texcoord.st, texture2D(depthtex0, texcoord.st).r);
 
-    vec3 normal = texture2D(gnormal, texcoord.st).rgb * 2.0 - 1.0;
+        fragpos = nvec3(gbufferProjectionInverse * nvec4(fragpos * 2.0 - 1.0));
 
-    vec4 reflection = raytrace(fragpos, normalize(normal));
+        vec3 normal = texture2D(gnormal, texcoord.st).rgb * 2.0 - 1.0;
 
-    color.rgb = mix(color.rgb, reflection.rgb, reflection.a * (vec3(1.0) - color.rgb) * 1.0);
+        vec4 reflection = raytrace(fragpos, normalize(normal));
+
+        color.rgb = mix(color.rgb, reflection.rgb, reflection.a * (vec3(1.0) - color.rgb) * 1.0);
+    }
 
     gl_FragColor = vec4(color.rgb, 0.0);
 }
