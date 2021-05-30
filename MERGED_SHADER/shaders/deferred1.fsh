@@ -48,19 +48,19 @@ void main() {
 		int kernel_radius = 2;
 
 		mat2 rotationMatrix = getRotationMatrix(texCoord);
-		float blurColor = 0.0;
-		// PCF filtering
+		float aoLevel = 0.0;
+		// Blur kernel filtering
 		for (int y = -kernel_radius; y <= kernel_radius; y++) {
 			for (int x = -kernel_radius; x <= kernel_radius; x++) {
 				vec2 offset = vec2(x/viewWidth, y/viewHeight);
 				offset = rotationMatrix * offset;
 
-				blurColor += texture2D(colortex4, texCoord + offset).r;
+				aoLevel += texture2D(colortex4, texCoord + offset).r;
 			}
 		}
-		blurColor = blurColor / pow((2*kernel_radius+1), 2);
+		aoLevel = aoLevel / pow((2*kernel_radius+1), 2);
 
-		color.rgb *= (blurColor);
+		color.rgb *= (aoLevel);
 	}
 
     /* DRAWBUFFERS:0 */

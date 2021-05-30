@@ -4,7 +4,7 @@
 //----------------------------------------------------------------------------
 // Varyings
 
-varying vec2 texcoord;
+varying vec2 texCoord;
 varying vec3 lightVector;
 varying vec3 lightColor;
 varying vec3 skyColor;
@@ -71,7 +71,7 @@ const float intensityAmbientCoeff = 0.2f;
 
 float GetShadow(float depth) {
 	// Create a 3D vector with (screenX, screenY, depth) and rescale to [-1, 1]
-    vec3 ClipSpace = vec3(texcoord, depth) * 2.0f - 1.0f;
+    vec3 ClipSpace = vec3(texCoord, depth) * 2.0f - 1.0f;
 
 	//
     vec4 ViewW = gbufferProjectionInverse * vec4(ClipSpace, 1.0f);
@@ -216,15 +216,15 @@ void main() {
 	//=================================================================
 	// Youtube Tutorial 4, 5
 
-	vec4 Color = texture2D(colortex0, texcoord);
+	vec4 Color = texture2D(colortex0, texCoord);
 	vec3 Albedo = gammaToLinearSpace(Color.rgb);
-	float Emission = texture2D(colortex1, texcoord).a;
-	vec3 Normal = texture2D(colortex2, texcoord).rgb * 2.0f - 1.0f;
+	float Emission = texture2D(colortex1, texCoord).b;
+	vec3 Normal = texture2D(colortex2, texCoord).rgb * 2.0f - 1.0f;
 
 	// float Depth = texture2D(depthtex0, texcoord).r;
 
 	// Fragment frag = Fragment(Albedo, Normal, Emission, 0.0);
-	Lightmap lightmap = Lightmap(texture2D(colortex1, texcoord).r, texture2D(colortex1, texcoord).g);
+	Lightmap lightmap = Lightmap(texture2D(colortex1, texCoord).r, texture2D(colortex1, texCoord).g);
 
 	// vec3 FinalColor = (calculateLighting(frag, lightmap));
 	// vec3 FinalColor = gammaToGammaSpace(calculateLighting(frag, lightmap));
@@ -248,14 +248,14 @@ void main() {
 	//=================================================================
 	// Youtube Tutorial 7
 
-	vec3 finalComposite = texture2D(colortex0, texcoord).rgb;
-	vec3 finalCompositeNormal = texture2D(colortex2, texcoord).rgb;
-	float finalCompositeDepth = texture2D(depthtex0, texcoord).r;
+	vec3 finalComposite = texture2D(colortex0, texCoord).rgb;
+	vec3 finalCompositeNormal = texture2D(colortex2, texCoord).rgb;
+	float finalCompositeDepth = texture2D(depthtex0, texCoord).r;
 
 	Fragment frag2 = Fragment(Albedo, Normal, Emission, finalCompositeDepth);
 
 	// finalComposite = (calculateLighting2(texcoord, frag2, lightmap));
-	finalComposite = gammaToGammaSpace(calculateLighting2(texcoord, frag2, lightmap));
+	finalComposite = gammaToGammaSpace(calculateLighting2(texCoord, frag2, lightmap));
 
 	gl_FragData[0] = vec4(finalComposite, 1.);
 	gl_FragData[1] = vec4(finalCompositeNormal, 1.);
@@ -271,6 +271,8 @@ void main() {
 	// gl_FragData[0] = vec4(Albedo, 1.0f);
 	// gl_FragData[0] = vec4(Normal, 1.0f);
 	// gl_FragData[0] = vec4(Emission);
+
+	// gl_FragData[0] = vec4(texture2D(colortex1, texCoord).b);
 
 	// gl_FragData[0] = vec4(pow(texture2D(depthtex2, texcoord).r, 50));
 

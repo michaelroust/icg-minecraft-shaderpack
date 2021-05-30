@@ -1,7 +1,7 @@
 #version 120
 
 
-varying vec2 texcoord;
+varying vec2 texCoord;
 varying vec3 lightVector;
 varying vec3 lightColor;
 varying vec3 skyColor; // Contains AmbientLightStrength coeff
@@ -14,7 +14,7 @@ uniform vec3 moonPosition;
 
 void main() {
 	gl_Position = ftransform();
-	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 
 	if (worldTime < 12700 || worldTime > 23250) {
 		// Day
