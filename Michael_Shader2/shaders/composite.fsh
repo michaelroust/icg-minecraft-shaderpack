@@ -24,6 +24,9 @@ uniform sampler2D colortex2; 	// 2  - gnormal/colortex2 The rest have their colo
 uniform sampler2D depthtex0; 	// Apparently contains depth info
 uniform sampler2D shadowtex0;	// Contains a shadow map (rendered from sun position, need to change to eye space to use this, I think).
 
+uniform sampler2D depthtex1;
+uniform sampler2D depthtex2;
+
 uniform sampler2D noisetex;
 
 uniform mat4 gbufferProjectionInverse;
@@ -213,7 +216,6 @@ void main() {
 	// Youtube Tutorial 4, 5
 
 	vec4 Color = texture2D(colortex0, texcoord);
-	// vec3 Albedo = (Color.rgb);
 	vec3 Albedo = gammaToLinearSpace(Color.rgb);
 	float Emission = texture2D(colortex1, texcoord).a;
 	vec3 Normal = texture2D(colortex2, texcoord).rgb * 2.0f - 1.0f;
@@ -251,6 +253,7 @@ void main() {
 
 	Fragment frag2 = Fragment(Albedo, Normal, Emission, finalCompositeDepth);
 
+	// finalComposite = (calculateLighting2(texcoord, frag2, lightmap));
 	finalComposite = gammaToGammaSpace(calculateLighting2(texcoord, frag2, lightmap));
 
 	gl_FragData[0] = vec4(finalComposite, 1.);
@@ -267,6 +270,8 @@ void main() {
 	// gl_FragData[0] = vec4(Albedo, 1.0f);
 	// gl_FragData[0] = vec4(Normal, 1.0f);
 	// gl_FragData[0] = vec4(Emission);
+
+	// gl_FragData[0] = vec4(pow(texture2D(depthtex2, texcoord).r, 50));
 
 	// gl_FragData[0] = texture2D(noisetex, texcoord);
 }
