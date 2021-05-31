@@ -35,8 +35,8 @@ uniform mat4 shadowModelView;
 
 uniform vec3 cameraPosition;
 
-// uniform int viewHeight;
 // uniform int viewWidth;
+// uniform int viewHeight;
 
 // Direction of the sun (not normalized!)
 // A vec3 indicating the position of the sun in eye space.
@@ -173,9 +173,6 @@ vec3 calculateLighting(in vec2 texCoord, in vec3 albedo, in vec3 normal, in floa
 
 //============================================================================
 
-// This tells which gl_FragDatas we will be writing to
-/* RENDERTARGETS: 0,N,N,N,N,5 */
-
 void main() {
 	//=================================================================
 	// Read values from color textures
@@ -201,8 +198,10 @@ void main() {
 	//=================================================================
 	// Write outputs
 
+	// This tells which gl_FragDatas we will be writing to
+	/* RENDERTARGETS: 0,N,N,N,N,5 */
+
 	gl_FragData[0] = vec4(finalColor, 1.);
-	// gl_FragData[2] = vec4(normal, 1.);
 
 	//=================================================================
 	// Wave stuff
