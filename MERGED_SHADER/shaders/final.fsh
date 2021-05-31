@@ -85,7 +85,7 @@ void main() {
 	vec4 color = texture2D(colortex0, texcoord.st);
     gl_FragColor = vec4(color.rgb, 0.0);
 
-    // #define REFLECTIONS
+    #define REFLECTIONS
     #ifdef REFLECTIONS
     float wave = texture2D(colortex5,texcoord.xy).g;
     if (wave > 0.0) {

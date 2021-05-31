@@ -26,7 +26,7 @@ void main() {
 	float wave = 0.05 * sin(2 * PI * (frameTimeCounter*0.75 + worldpos.x /  7.0 + worldpos.z / 13.0))
 				   + 0.05 * sin(2 * PI * (frameTimeCounter*0.6 + worldpos.x / 11.0 + worldpos.z /  5.0));
 	float displacement = clamp(wave, -fy, 1.0-fy);
-	viewpos.y += displacement*0.5;
+	viewpos.y += displacement*1.0;
 	#endif
 
 	gl_Position = gl_ProjectionMatrix * viewpos;
