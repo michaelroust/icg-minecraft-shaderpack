@@ -22,8 +22,8 @@ const int noiseTextureResolution = 64;
 
 const int   kernel_radius   = 2;
 const float separation      = 2.0;
-const float threshold       = 0.85;
-const float amount          = 0.25;
+const float threshold       = 0.87;
+const float amount          = 0.20;
 
 //============================================================================
 

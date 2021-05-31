@@ -48,9 +48,9 @@ uniform vec3 cameraPosition;
 // const int shadowMapResolution = 32;
 // const int shadowMapResolution = 1024;
 // const int shadowMapResolution = 4096;
-const int shadowMapResolution = 16384;
+const int shadowMapResolution = 8192;
 // const int shadowMapResolution = 32768;
-const float sunPathRotation = -10.0f;
+const float sunPathRotation = 30.0f;
 
 const int noiseTextureResolution = 64;
 
@@ -65,11 +65,11 @@ const float shadowBias = 0.0005; // Reasonable values within [0.001, 0.000001]
 // Gamma Correction
 
 vec3 gammaToLinearSpace(vec3 color) {
-	return pow(color, vec3(2.2f));
+	return pow(color, vec3(2.4f));
 }
 
 vec3 gammaToGammaSpace(vec3 color) {
-	return pow(color, vec3(1.0f/2.2f));
+	return pow(color, vec3(1.0f/2.4f));
 }
 
 //============================================================================
@@ -161,8 +161,8 @@ vec3 calculateLighting(in vec2 texCoord, in vec3 albedo, in vec3 normal, in floa
 
 	vec3 directLightColor = directLightStrength * lightColor * getSoftShadow(texCoord, depth);
 
-	vec3 torchColor = vec3(1, 0.85, 0.7);
-	vec3 torchLightColor = torchColor * pow(torchLightStrength, 4);
+	vec3 torchColor = vec3(1, 0.95, 0.9);
+	vec3 torchLightColor = torchColor * pow(torchLightStrength, 4.5);
 
 	vec3 skyLightColor = skyColor * pow(skyLightStrength, 2);
 

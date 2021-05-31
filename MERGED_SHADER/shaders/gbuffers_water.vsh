@@ -1,6 +1,6 @@
 #version 120
 
-varying vec4 color;
+varying vec4 tintColor;
 varying vec2 lmcoord;
 varying vec3 normal;
 
@@ -31,7 +31,7 @@ void main() {
 
 	gl_Position = gl_ProjectionMatrix * viewpos;
 
-	color = gl_Color;
+	tintColor = gl_Color;
 
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).st;
 	normal = normalize(gl_NormalMatrix * gl_Normal);
