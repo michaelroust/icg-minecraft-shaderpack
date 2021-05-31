@@ -1,9 +1,15 @@
 #version 120
 
-#include "distort.glsl"
+// #include "distort.glsl"
 
 varying vec2 TexCoords;
 varying vec4 Color;
+
+vec2 DistortPosition(in vec2 position){
+    float CenterDistance = length(position);
+    float DistortionFactor = mix(1.0f, CenterDistance, 0.9f);
+    return position / DistortionFactor;
+}
 
 void main(){
     gl_Position    = ftransform();
