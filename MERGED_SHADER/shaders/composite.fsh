@@ -136,7 +136,7 @@ float getSoftShadow(in vec2 coord, in float depth) {
 
 	float visibilitySample = 0.0;
 
-	int kernel_radius = 3; // Could be made a const
+	int kernel_radius = 2; // Could be made a const
 
 	mat2 rotationMatrix = getRotationMatrix(getRandomAngle(coord));
 
