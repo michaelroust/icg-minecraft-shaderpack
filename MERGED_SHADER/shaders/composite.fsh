@@ -174,7 +174,7 @@ vec3 calculateLighting(in vec2 texCoord, in vec3 albedo, in vec3 normal, in floa
 //============================================================================
 
 // This tells which gl_FragDatas we will be writing to
-/* RENDERTARGETS: 0,1,2,N,N,5 */
+/* RENDERTARGETS: 0,N,N,N,N,5 */
 
 void main() {
 	//=================================================================
@@ -202,8 +202,7 @@ void main() {
 	// Write outputs
 
 	gl_FragData[0] = vec4(finalColor, 1.);
-	gl_FragData[1] = vec4(normal, 1.);
-	gl_FragData[2] = vec4(depth);
+	// gl_FragData[2] = vec4(normal, 1.);
 
 	//=================================================================
 	// Wave stuff
