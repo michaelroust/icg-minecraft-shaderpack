@@ -2,12 +2,12 @@
 
 varying vec4 texcoord;
 
-uniform sampler2D depthtex0;
-uniform sampler2D gnormal;
-uniform sampler2D gaux1;
-uniform sampler2D gaux2;
-uniform sampler2D composite;
+uniform sampler2D colortex0;
+uniform sampler2D colortex2;
+uniform sampler2D colortex4;
+uniform sampler2D colortex5;
 
+uniform sampler2D depthtex0;
 
 ////////////     RAYTRACING       ////////////
 
@@ -35,7 +35,7 @@ float cdist(vec2 coord) {
 vec4 raytrace(vec3 fragpos, vec3 normal){
 
     float wave = 0.0;
-	vec3 aux = texture2D(gaux1, texcoord.st).rgb;
+	vec3 aux = texture2D(colortex4, texcoord.st).rgb;
 	if(aux.g > 0.01 && aux.g < 0.07) {
 		wave = 1.;
 	}
@@ -53,12 +53,12 @@ vec4 raytrace(vec3 fragpos, vec3 normal){
         vec3 spos = vec3(pos.st, texture2D(depthtex0, pos.st).r);
         spos = nvec3(gbufferProjectionInverse * nvec4(spos * 2.0 - 1.0));
 		float err = abs(fragpos.z-spos.z);
-		if(err < pow(length(vector)*1.85,1.15) && texture2D(gaux2,pos.st).g < 0.01){
+		if(err < pow(length(vector)*1.85,1.15) && texture2D(colortex5,pos.st).g < 0.01){
                 sr++;
                 if(sr >= maxf){
                     float border = clamp(1.0 - pow(cdist(pos.st), 1.0), 0.0, 1.0);
-                    color = texture2D(composite, pos.st);
-					float land = texture2D(gaux1, pos.st).g;
+                    color = texture2D(colortex0, pos.st);
+					float land = texture2D(colortex4, pos.st).g;
 					land = float(land < 0.03);
 					spos.z = mix(fragpos.z,2000.0*(0.4+1.0*0.6),land);
 					color.a = 1.0;
@@ -82,17 +82,19 @@ vec4 raytrace(vec3 fragpos, vec3 normal){
 
 void main() {
 
-	vec4 color = texture2D(composite, texcoord.st);
+	vec4 color = texture2D(colortex0, texcoord.st);
     // gl_FragColor = vec4(color.rgb, 0.0);
 
-    float wave = texture2D(gaux2,texcoord.xy).g;
+
+
+    float wave = texture2D(colortex5,texcoord.xy).g;
 
     if (wave > 0.0) {
         vec3 fragpos = vec3(texcoord.st, texture2D(depthtex0, texcoord.st).r);
 
         fragpos = nvec3(gbufferProjectionInverse * nvec4(fragpos * 2.0 - 1.0));
 
-        vec3 normal = texture2D(gnormal, texcoord.st).rgb * 2.0 - 1.0;
+        vec3 normal = texture2D(colortex2, texcoord.st).rgb * 2.0 - 1.0;
 
         vec4 reflection = raytrace(fragpos, normalize(normal));
 

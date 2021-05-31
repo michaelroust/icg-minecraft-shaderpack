@@ -15,7 +15,7 @@ uniform sampler2D colortex0; 	// gcolor/colortex0 has its color cleared to the c
 uniform sampler2D colortex1; 	// gdepth/colortex1 has its color cleared to solid white before rendering and uses a higher precision storage buffer suitable for storing depth values.
 uniform sampler2D colortex2; 	// gnormal/colortex2 The rest have their color cleared to black with 0 alpha.
 // uniform sampler2D colortex3; 	// 3
-// uniform sampler2D colortex4; 	// 7
+uniform sampler2D colortex4; 	// 7
 // uniform sampler2D colortex5; 	// 8
 // uniform sampler2D colortex6; 	// 9
 // uniform sampler2D colortex7; 	// 10
@@ -174,7 +174,7 @@ vec3 calculateLighting(in vec2 texCoord, in vec3 albedo, in vec3 normal, in floa
 //============================================================================
 
 // This tells which gl_FragDatas we will be writing to
-/* RENDERTARGETS: 0,1,2 */
+/* RENDERTARGETS: 0,1,2,N,N,5 */
 
 void main() {
 	//=================================================================
@@ -198,9 +198,24 @@ void main() {
 
 	vec3 finalColor = gammaToGammaSpace(calculateLighting(texCoord, albedo, normal, emission, depth, torchLightStrength, skyLightStrength));
 
+	//=================================================================
+	// Write outputs
+
 	gl_FragData[0] = vec4(finalColor, 1.);
 	gl_FragData[1] = vec4(normal, 1.);
 	gl_FragData[2] = vec4(depth);
+
+	//=================================================================
+	// Wave stuff
+
+	vec3 waveInfo = texture2D(colortex4, texCoord).rgb;
+
+	float wave = 0.0;
+	if(waveInfo.g > 0.01 && waveInfo.g < 0.07) {
+		wave = 1.;
+	}
+
+	gl_FragData[5] = vec4(0.0, wave, 0.0, 0.0);
 
 	//=================================================================
 	//Debug
