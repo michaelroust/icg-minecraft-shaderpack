@@ -89,7 +89,7 @@ vec4 raymarching(vec3 ray, vec3 normal, vec3 ref_ray){
 
 void main() {
 
-// CALL THE RAYMATCHING ALGORITHM
+    // CALL THE RAYMATCHING ALGORITHM
     // with arguments of fragment's position, normal, and reflection about the normal
     
     // ARGUMENT_1: ray - is the vector from the camera position to the current fragment position
