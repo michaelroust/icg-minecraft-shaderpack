@@ -85,9 +85,9 @@ void main() {
 	vec4 color = texture2D(colortex0, texcoord.st);
     gl_FragColor = vec4(color.rgb, 0.0);
 
-
+    // #define REFLECTIONS
+    #ifdef REFLECTIONS
     float wave = texture2D(colortex5,texcoord.xy).g;
-
     if (wave > 0.0) {
         vec3 fragpos = vec3(texcoord.st, texture2D(depthtex0, texcoord.st).r);
 
@@ -99,6 +99,7 @@ void main() {
 
         color.rgb = mix(color.rgb, reflection.rgb, reflection.a * (vec3(1.0) - color.rgb) * 1.0);
     }
+    #endif
 
     gl_FragColor = vec4(color.rgb, 0.0);
 }
