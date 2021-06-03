@@ -9,128 +9,125 @@ uniform sampler2D colortex5;
 
 uniform sampler2D depthtex0;
 
-////////////     RAYTRACING       ////////////
-
 uniform mat4 gbufferProjection;
 uniform mat4 gbufferProjectionInverse;
-
-const float stp = 1.2;
-const float ref = 0.1;
-const float inc = 2.2;
-const int maxf = 4;
-
-vec3 nvec3(vec4 pos){
-    return pos.xyz/pos.w;
-}
-
-vec4 nvec4(vec3 pos){
-    return vec4(pos.xyz, 1.0);
-}
-
-float cdist(vec2 coord) {
-	return max(abs(coord.s-0.5),abs(coord.t-0.5))*2.0;
-}
 
 // RAYMATCHING ALGORITHM
 // ARGUMENT_1: ray - is the vector from the camera position to the current fragment position
 // ARGUMENT_2: normal - is the vector pointing in the direction of the interpolated vertex normal for the current fragment
 // ARGUMENT_3: ref_ray - is the reflection ray pointing in the reflected direction of the fragment position
-vec4 raymarching(vec3 ray, vec3 normal, vec3 ref_ray){
-
+// arguments are in view space
+vec4 raymarching(vec3 fwd_ray_viewPos, vec3 normal, vec3 ref_ray_viewPos){
     // default color
     vec4 color = vec4(0.0);
-    
-    vec3 vector = ref_ray;
+    // ray position to sample for hit, currently the reflected ray has unit length
+    // it will be incremented in each iteration
+    vec3 ray_viewPos = fwd_ray_viewPos + ref_ray_viewPos;
+    int fine_pass = 0;
 
-    // starting position where the ray hits the screen (vector from eye to current fragment)
-    vec3 start_ray = ray;
-    // increment, first point on screen to check for hit
-    ray += vector;
-    int sr = 0;
-
-    // iteration number for the incrementing the ray
+    // ROUGH PASS
+    // iteration number for incrementing the length of the reflected ray
+    // max iteration determines the max length of the reflected vector, how far reflection can appear
+    // samples a different fragment for hit in each iteration
     for (int i = 0; i < 35; i++) {
-        // space conversions - we execute a transformation from view space to screen space
-        // we project to screen space, perform perspective divide and convert from xy coordinates to screen coordinates
-        vec4 start_frag = gbufferProjection * vec4(ray, 1.0);
-        vec3 frag = start_frag.xyz / start_frag.w;
-        frag = frag * 0.5 + 0.5;
+        // transformation from view space to screen space
+        // transform the possible intersection point, the ray to screen space
+        vec4 ray_clipPos = gbufferProjection * vec4(ray_viewPos, 1.0);
+        vec3 tmp1 = ray_clipPos.xyz / ray_clipPos.w;
+        vec3 ray_screenPos = tmp1 * 0.5 + 0.5;
         
         // if the fragment is out of the screen return with default color there is no intersection/reflection
-        if (frag.x < 0 || frag.x > 1 || frag.y < 0 || frag.y > 1 || frag.z < 0 || frag.z > 1.0) break;
-        // calculate the screen space coordinate for the incremented rays
-        // from the depthtex0 we get the distance vector for the fragment
-        vec3 spos = vec3(frag.st, texture2D(depthtex0, frag.st).r);
-        // convert back the view space
-        spos = nvec3(gbufferProjectionInverse * vec4(spos * 2.0 - 1.0, 1.0));
-		
-        // calculate the deviation
-        float err = abs(ray.z - spos.z);
-		
-        // if the deviation is small enough refine it
-        if (err < pow(length(vector) * 1.85, 1.15) && texture2D(colortex5, frag.st).g < 0.01) {
-            sr++;
-            
-            if(sr >= 4){
+        if (   ray_screenPos.x < 0  ||  ray_screenPos.x > 1
+            || ray_screenPos.y < 0  ||  ray_screenPos.y > 1
+            || ray_screenPos.z < 0  ||  ray_screenPos.z > 1.0) break;
+        
+        // otherwise
+        // check the exact/real depth coordinates at the xy coordinates of the sampled ray position
+        // from the depthtex0 we get the distance vector for the sampled fragment
+        // convert back the real position on screen from screen space to view space
+        vec3 real_screenPos = vec3(ray_screenPos.st, texture2D(depthtex0, ray_screenPos.st).r);
+        vec3 real_clipPos = real_screenPos * 2.0 - 1.0;
+        vec4 tmp2 = gbufferProjectionInverse * vec4(real_clipPos, 1.0);
+        vec3 real_viewPos = tmp2.xyz / tmp2.w;
 
-                float border = clamp(1.0 - pow(cdist(frag.st), 1.0), 0.0, 1.0);
-                color = texture2D(colortex0, frag.st);
-                float land = texture2D(colortex4, frag.st).g;
+        // FINE PASS
+        // if the deviation of the sampled position depth and the real depth is smaller than
+        // the other increment by the vector in the next iteration and
+        // the sampled position is not water then start the refinement pass
+        if (    abs(ray_viewPos.z - real_viewPos.z) < pow(length(ref_ray_viewPos) * 1.85, 1.15)
+                && texture2D(colortex5, ray_screenPos.st).g < 0.01) {
+            
+            // determines the refinement iteration number
+            if(fine_pass >= 4) {
+
+                // sample the color texture at the sample position
+                color = texture2D(colortex0, ray_screenPos.st);
+                float land = texture2D(colortex4, ray_screenPos.st).g;
                 land = float(land < 0.03);
-                spos.z = mix(ray.z, 2000.0 * (0.4 + 1.0 * 0.6), land);
-                color.a = 1.0;
+                real_screenPos.z = mix(ray_viewPos.z, 2000.0, land);
+
+                // adjust visibility at borders
+                float border = clamp(1.0 -
+                    pow(max(abs(ray_screenPos.s - 0.5), abs(ray_screenPos.t - 0.5)) * 2.0,
+                    1.0),
+                    0.0, 1.0);
                 color.a *= border;
                 break;
 
             }
 
-            ray = start_ray;
-            vector *= 0.1;
+            // adjust the next iteration increment for the fine pass
+            fine_pass++;
+            ray_viewPos = fwd_ray_viewPos;
+            ref_ray_viewPos *= 0.1;
         }
 
-        // increment the ray delta by an even larger number than before
-        vector *= 2.2;
+        // increment the ray delta by a larger number than before
+        ref_ray_viewPos *= 2.2;
         // store the last no-hit in start_ray
-        start_ray = ray;
+        fwd_ray_viewPos = ray_viewPos;
         // sample a different point on screen
-        ray += vector;
+        ray_viewPos += ref_ray_viewPos;
     }
 
     return color;
-    
 }
 
-////////////     RAYTRACING       ////////////
-
-
-//------------MAIN----------------
-
+/*
+/* Calculates reflection on water surface
+*/
 void main() {
-
-    // CALL THE RAYMATCHING ALGORITHM
-    // with arguments of fragment's position, normal, and reflection about the normal
-    
-    // ARGUMENT_1: ray - is the vector from the camera position to the current fragment position
-    // we know the texture coordinate and how far away from the camera the current point on the ray is, this is given by the depth texture
-    // depthtex0 stores the depth information of the screen (it includes water -> stores the coordinate of the water surface)
+    // Read the color of the fragment from the colortex0 texture
 	vec4 color = texture2D(colortex0, texcoord.st);
-    gl_FragColor = vec4(color.rgb, 0.0);
 
     #define REFLECTIONS
     #ifdef REFLECTIONS
-    float wave = texture2D(colortex5,texcoord.xy).g;
-    if (wave > 0.0) {
-        // from the screen space we can tranform the coordinates back to view space
-        vec3 ray = vec3(texcoord.st, texture2D(depthtex0, texcoord.st).r);
-        // from the screen space we can tranform the coordinates back to view space
-        ray = (gbufferProjectionInverse * vec4(ray * 2.0 - 1.0, 1.0)).xyz / (gbufferProjectionInverse * vec4(ray * 2.0 - 1.0, 1.0)).w;
-        // ARGUMENT_2: normal - is the vector pointing in the direction of the interpolated vertex normal for the current fragment
+    // Calculate reflection for water entities only, get the information out from the colortex5 texture
+    bool water = texture2D(colortex5, texcoord.xy).g > 0.0 ? true : false;
+    if (water) {
+        // ARGUMENT_1:
+        // ray - is the vector from the camera position to the current fragment position
+        // we know the fragment coordinate in screen space and how far away from the camera the current point on the ray is,
+        // this is given by the depth texture, depthtex0 stores the depth information of the screen (it includes water -> stores the coordinate of the water surface)
+        // coordinates are stored in screen space, we need to tranform the coordinates back to view space
+        // transformation from screen space to view space
+        vec3 fwd_ray_screenPos = vec3(texcoord.st, texture2D(depthtex0, texcoord.st).r);
+        vec3 fwd_ray_clipPos = fwd_ray_screenPos * 2.0 - 1.0;
+        vec4 tmp = gbufferProjectionInverse * vec4(fwd_ray_clipPos, 1.0);
+        vec3 fwd_ray_viewPos = tmp.xyz / tmp.w;
+        // ARGUMENT_2:
+        // normal - is the vector pointing in the direction of the interpolated vertex normal for the current fragment
+        // it has been stored previously in colortex2 texture and can be sampled now
         vec3 normal = normalize(texture2D(colortex2, texcoord.st).rgb * 2.0 - 1.0);
-        // ARGUMENT_3: ref_ray - is the reflection ray pointing in the reflected direction of the fragment position -- length of one
-        vec3 ref_ray = normalize(reflect(normalize(ray), normal));
-        // RAYMATCHING
-        vec4 reflection = raymarching(ray, normal, ref_ray);
+        // ARGUMENT_3:
+        // ref_ray - is the reflection ray pointing in the reflected direction of the fragment position -- length of one
+        vec3 ref_ray_viewPos = normalize(reflect(normalize(fwd_ray_viewPos), normal));
+        
+        // CALL THE RAYMARCHING ALGORITHM
+        // with arguments of fragment's position, normal, and reflection about the normal in view space
+        vec4 reflection = raymarching(fwd_ray_viewPos, normal, ref_ray_viewPos);
 
+        // mix the previously stored color with the reflected color
         color.rgb = mix(color.rgb, reflection.rgb, reflection.a * (vec3(1.0) - color.rgb) * 1.0);
     }
     #endif
