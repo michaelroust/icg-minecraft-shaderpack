@@ -130,6 +130,8 @@ we would be glad to explain how to install the shaderpack to try for themselves.
 - Soft Shadows
 - Bloom
 - Ambient Occlusion 40%
+- Wavy water 10%
+- Screen space reflections 10%
 
 ### Szabina
 
