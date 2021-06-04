@@ -129,9 +129,6 @@ to view space in order to reduce the number of samples required to obtain useful
 In order to make the water more realistic, we modified the vertex y positions (depending on time information) based on sinusodial approach.
 As we were asked to implement the noise by other algorithms we used a 3rd party library (listed in references) to deviate further the vertices.
 
-## Distortion of water (not implemented due to time constraints)
-In order to make water more realistic we would have liked to deviate the fragment normals covering deviation in each direction (x, -x, y, -y, z, -z).
-This could have be done by a noise function in range of (-1, 1). The result would have modified the final reflected color by SSR.
 
 # Results
 
@@ -160,10 +157,9 @@ We also built a custom map to showcase each feature individually, just drag the 
 - Understanding how to interact with the Minecraft rendering pipeline
 - Screen Space Reflection
 - Wavy water
-- Understanding the concept of distortion in water
 
 ### Erik
-- Intial setup and understanding how to interact with the Minecraft rendering pipeline.
+- Understanding how to interact with the Minecraft rendering pipeline.
 - Ambient Occlusion
 - Build of the demonstration scene
 - Video Demonstration
