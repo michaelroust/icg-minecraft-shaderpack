@@ -44,7 +44,7 @@ Our work on lighting consisted can roughly described as adding
 the diffuse component to this already exisiting form of dynamic
 ambient lighting.
 
-![Shadows](images/shadows.png){width=200px}
+![Shadows](images/shadows.png)
 
 ### Making basic shadows work
 
@@ -72,7 +72,7 @@ while applying a random rotation (generated from noise) to the offset when sampl
 the exact neighbours of a fragment and each nearby fragment will have different random rotations and thus a somewhat different blur.
 We also tried using a gaussian blur but the improvment was negligible.
 
-![Bloom](images/bloom.png){width=200px}
+![Bloom](images/bloom.png)
 
 ## Bloom
 
@@ -98,7 +98,7 @@ An other parameter to define is the delta increment of the vector. It decides th
 We have two passes in our ray marching algorithm. A rough pass that scans the point along the ray where the ray enters or goes behind some geometry.
 Then comes the refinement pass which further divides the space and scans for more refined hits within a thickness.
 
-![SSR](images/water.png){width=200px}
+![SSR](images/water.png)
 
 
 ### Our implementation
@@ -107,6 +107,24 @@ You find line by line documentation in the water shader final pass.
 
 We get the color information of the fragment from the color texture stored by previous shaders. We check the entity, in case of water we do launch the ray marching algorithm with parameters; forward ray, normal and reflected ray in view space. All three coordinates are known for the sampled point.
 These coordinates are then transformed back to screen space. We check in screen space the corresponding real depth coordinate of the sampled fragment. The real coordinates are then transformed back to view space. In view space we can check the difference between the sampled depth coordinate (calculated by the addition of the forward ray and reflected ray) and the real coordinates. If the difference is small enough we can start a refinement pass and modify the incremented vector accordingly. If there was no hit, difference is larger then expected, we continue with the rough pass. We adjust the visibility at the borders.
+
+
+## Ambient Occlusion
+
+### Algorithm in general
+
+We decided to go with screen space ambient occlusion for performance reasons. We compute an occlusion factor per fragment based on the fragment's surrounding
+depth values. The factor is obtained by taking random samples within a unit hemisphere around the fragment's position and then comparing the depth values of each sample with the depth value of the fragment itself.
+
+![SSR](images/ao.png)
+
+
+### Our implementation
+
+The random samples are obtained from the noise texture. We then linearly interpolate the samples to have more samples closer to the fragment itself.
+We also add a random rotation when transforming the hemisphere from tangent
+to view space in order to reduce the number of samples required to obtain useful information. We then get the sample's position in view space based on the fragment's position in view space. We then get the depth of both the sample and the fragment. If the depth of the sample is greater, the occlusion factor will increase by one. Finally, the occlusion factor is divided by the number of samples. The ambient occlusion factor will be between one and zero, with zero meaning that the fragment is fully occluded.
+
 
 # Results
 
@@ -131,15 +149,15 @@ we would be glad to explain how to install the shaderpack to try for themselves.
 - Intial setup and understanding how to interact with the Minecraft rendering pipeline.
 - Soft Shadows
 - Bloom
-- Ambient Occlusion 40%
-- Wavy water 10%
-- Screen space reflections 10%
 
 ### Szabina
-
+- Intial setup and understanding how to interact with the Minecraft rendering pipeline.
+- Wavy Water
+- Screen Space Reflections
 ### Erik
-
-- Ambient Occlusion 60%
+- Intial setup and understanding how to interact with the Minecraft rendering pipeline.
+- Ambient Occlusion
+- Video Demonstration
 
 # References
 <!-- TODO Comment these references -->

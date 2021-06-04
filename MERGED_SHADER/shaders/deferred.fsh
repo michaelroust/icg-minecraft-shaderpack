@@ -12,38 +12,10 @@ uniform mat4 gbufferProjection;
 uniform float far, near;
 
 const float ambientOcclusionLevel = 0.0;
-
 const int noiseTextureResolution = 64;
 
-
-
-float rand(vec2 co){
-    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
-}
-
-float getRandomAngle(in vec2 coord) {
-	vec2 noiseTexCoord = vec2(mod(coord.x, noiseTextureResolution), mod(coord.y, noiseTextureResolution));
-	float theta = texture2D(noisetex, noiseTexCoord).r;
-	return theta;
-}
-
-mat2 getRotationMatrix(float theta) {
-	return mat2(
-		cos(theta), -sin(theta),
-		sin(theta), cos(theta)
-	);
-}
-
-
-float lerp(float a, float b, float f){
-    return a + f * (b - a);
-}
-
-float readDepth(vec2 coord)
-{
-	return texture2D(depthtex0, coord).r;
-}
-
+#define AO_DETAIL 128
+#define AO_STRENGTH 1.25
 
 vec3 screenToViewPos(vec3 screenPos) {
 	vec3 clipPos = screenPos * 2.0 - 1.0;
@@ -60,76 +32,76 @@ vec3 viewToScreenPos(vec3 viewPos) {
 }
 
 
-void main() {
+
+float computeAO(float depth){
+
 	float ao = 0.0;
 
-	//------------------------------------------------------------------------
-
-	vec3 normal = texture2D(colortex2, texCoord).rgb * 2.0 - 1.0; // View Space
-	float depth = readDepth(texCoord);
-
+    vec3 normal = texture2D(colortex2, texCoord).rgb * 2.0 - 1.0; // View Space
 	vec3 fragScreenPos = vec3(texCoord, depth);
-
-	vec3 randomVec = normalize(vec3(1,0,0)); // TODO Make it actually random
+	
+	// adds random rotation to rotate the sample kernel
+	vec3 randomVec = normalize(texture2D(depthtex0, texCoord).xyz);
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
 	vec3 bitangent = cross(normal, tangent);
+
+	// transforms hemisphere from tangent space
 	mat3 TBN = mat3(tangent, bitangent, normal);
 
-	float radius = 1.0;
-
-	//------------------------------------------------------------------------
-	// For loop samples
-
-	int numberSamples = 32;
+	int numberSamples = AO_DETAIL;
+	float radius = 1.25;
 
 	for (int i = 0; i < numberSamples; i++) {
 
 		float x = (i + 0.5) / float(noiseTextureResolution);
 		float y = (floor(float(i) / float(noiseTextureResolution)) + 0.5) / float(noiseTextureResolution);
+		
 		vec3 hemisphereSample = texture2D(noisetex, vec2(x, y)).rgb;
+		
+		// map it onto unit hemisphere in tangent space
 		hemisphereSample.xy = hemisphereSample.xy * 2.0 - 1.0;
 
+
 		hemisphereSample = normalize(hemisphereSample);
 
-		//-----------------------------------------------------
-		hemisphereSample = normalize(hemisphereSample);
-		float scale = i / 64.0;
-		scale   = lerp(0.1, 1.0, scale * scale);
+		float scale = i / numberSamples;
+		scale   =  mix(0.1, 1.0, scale * scale);
 		hemisphereSample *= scale;
-		//-----------------------------------------------------
 
 		vec3 sampleInViewSpace = TBN * hemisphereSample; // samplePos in ViewSpace
-
 		vec3 fragViewPos = screenToViewPos(fragScreenPos);
 
 		// Move sample to near the fragment
 		sampleInViewSpace = fragViewPos + sampleInViewSpace * radius;
 
-		// NOW transform sampleInViewSpace to ScreenSpace
+		// transform sampleInViewSpace to ScreenSpace
 		vec3 movedSampleInScreenSpace = viewToScreenPos(sampleInViewSpace);
-
-		vec3 offsetPosInScreenSpace = vec3(movedSampleInScreenSpace.xy, readDepth(movedSampleInScreenSpace.xy));
+		
+		vec3 offsetPosInScreenSpace = vec3(movedSampleInScreenSpace.xy, texture2D(depthtex0,movedSampleInScreenSpace.xy).r);
 		vec3 offsetPosInViewSpace = screenToViewPos(offsetPosInScreenSpace);
 
-		//-----------------------------------------------------
+		float sampleDepth = offsetPosInViewSpace.z;
 
-		// if offsetPosInViewSpace is closer than sampleInViewSpace the sample contributes to occlusion
-		ao += (sampleInViewSpace.z + 0.005 <= offsetPosInViewSpace.z ? 0.0 : 1.0);
+		// if offsetPosInViewSpace is closer than the sampleInViewSpace the sample contributes to occlusion
+		ao += (sampleInViewSpace.z + 0.01 <= sampleDepth ? 0.0 : 1.0);
 	}
 
 	ao = ao / numberSamples;
+	return pow(ao, AO_STRENGTH);
 
-	ao = pow(ao, 1.5);
+}
 
-	// ao=1.0;
 
-	// gl_FragData[0] = vec4(ao/numberSamples);
+void main() {
 
-	// gl_FragData[0] = texture2D(colortex0, texCoord) * ao;
-	// gl_FragData[0] = vec4(gammaToGammaSpace(gammaToLinearSpace(texture2D(colortex0, texCoord).rgb) * ao), 1.0);
+	#define AO
 
-	//------------------------------------------------------------------------
-
-	/* RENDERTARGETS:N,N,N,N,4 */
-    gl_FragData[4] = vec4(ao, 0.0, 0.0, 0.0);
+	#ifdef AO
+		float depth = texture2D(depthtex0, texCoord).r;
+		float ao = computeAO(depth);
+	#else
+		float ao = 1.0;
+	#endif
+		/* RENDERTARGETS:N,N,N,N,4 */
+		gl_FragData[4] = vec4(ao, 0.0, 0.0, 0.0);
 }
