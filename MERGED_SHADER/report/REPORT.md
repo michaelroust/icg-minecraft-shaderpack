@@ -98,6 +98,8 @@ An other parameter to define is the delta increment of the vector. It decides th
 We have two passes in our ray marching algorithm. A rough pass that scans the point along the ray where the ray enters or goes behind some geometry.
 Then comes the refinement pass which further divides the space and scans for more refined hits within a thickness.
 
+![SSR](images/water.png){width=200px}
+
 
 ### Our implementation
 
