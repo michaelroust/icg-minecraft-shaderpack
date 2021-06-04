@@ -12,6 +12,15 @@ uniform sampler2D depthtex0;
 uniform mat4 gbufferProjection;
 uniform mat4 gbufferProjectionInverse;
 
+//============================================================================
+// Ray Marching Parameters
+
+const int rough_pass_iteration = 35;
+const int fine_pass_iteration = 5;
+const float rough_increment = 2.0;
+const float fine_increment = 0.1;
+
+//============================================================================
 // RAYMATCHING ALGORITHM
 // ARGUMENT_1: ray - is the vector from the camera position to the current fragment position
 // ARGUMENT_2: normal - is the vector pointing in the direction of the interpolated vertex normal for the current fragment
@@ -29,7 +38,7 @@ vec4 raymarching(vec3 fwd_ray_viewPos, vec3 normal, vec3 ref_ray_viewPos){
     // iteration number for incrementing the length of the reflected ray
     // max iteration determines the max length of the reflected vector, how far reflection can appear
     // samples a different fragment for hit in each iteration
-    for (int i = 0; i < 35; i++) {
+    for (int i = 0; i < rough_pass_iteration; i++) {
         // transformation from view space to screen space
         // transform the possible intersection point, the ray to screen space
         vec4 ray_clipPos = gbufferProjection * vec4(ray_viewPos, 1.0);
@@ -37,8 +46,8 @@ vec4 raymarching(vec3 fwd_ray_viewPos, vec3 normal, vec3 ref_ray_viewPos){
         vec3 ray_screenPos = tmp1 * 0.5 + 0.5;
         
         // if the fragment is out of the screen return with default color there is no intersection/reflection
-        if (   ray_screenPos.x < 0  ||  ray_screenPos.x > 1
-            || ray_screenPos.y < 0  ||  ray_screenPos.y > 1
+        if (   ray_screenPos.x < 0  ||  ray_screenPos.x > 1.0
+            || ray_screenPos.y < 0  ||  ray_screenPos.y > 1.0
             || ray_screenPos.z < 0  ||  ray_screenPos.z > 1.0) break;
         
         // otherwise
@@ -54,16 +63,17 @@ vec4 raymarching(vec3 fwd_ray_viewPos, vec3 normal, vec3 ref_ray_viewPos){
         // if the deviation of the sampled position depth and the real depth is smaller than
         // the other increment by the vector in the next iteration and
         // the sampled position is not water then start the refinement pass
-        if (    abs(ray_viewPos.z - real_viewPos.z) < pow(length(ref_ray_viewPos) * 1.85, 1.15)
+        if (    abs(ray_viewPos.z - real_viewPos.z) < pow(length(ref_ray_viewPos) * 1.85, 1.10)
                 && texture2D(colortex5, ray_screenPos.st).g < 0.01) {
             
             // determines the refinement iteration number
-            if(fine_pass >= 4) {
+            if(fine_pass >= fine_pass_iteration) {
 
                 // sample the color texture at the sample position
                 color = texture2D(colortex0, ray_screenPos.st);
+                // adjust the depth depending on the lightmap
                 float land = texture2D(colortex4, ray_screenPos.st).g;
-                land = float(land < 0.03);
+                land = float(land < 0.01);
                 real_screenPos.z = mix(ray_viewPos.z, 2000.0, land);
 
                 // adjust visibility at borders
@@ -79,11 +89,11 @@ vec4 raymarching(vec3 fwd_ray_viewPos, vec3 normal, vec3 ref_ray_viewPos){
             // adjust the next iteration increment for the fine pass
             fine_pass++;
             ray_viewPos = fwd_ray_viewPos;
-            ref_ray_viewPos *= 0.1;
+            ref_ray_viewPos *= fine_increment;
         }
 
         // increment the ray delta by a larger number than before
-        ref_ray_viewPos *= 2.2;
+        ref_ray_viewPos *= rough_increment;
         // store the last no-hit in start_ray
         fwd_ray_viewPos = ray_viewPos;
         // sample a different point on screen
@@ -93,6 +103,7 @@ vec4 raymarching(vec3 fwd_ray_viewPos, vec3 normal, vec3 ref_ray_viewPos){
     return color;
 }
 
+//============================================================================
 /*
 /* Calculates reflection on water surface
 */
