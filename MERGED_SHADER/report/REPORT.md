@@ -125,6 +125,13 @@ The random samples are obtained from the noise texture. We then linearly interpo
 We also add a random rotation when transforming the hemisphere from tangent
 to view space in order to reduce the number of samples required to obtain useful information. We then get the sample's position in view space based on the fragment's position in view space. We then get the depth of both the sample and the fragment. If the depth of the sample is greater, the occlusion factor will increase by one. Finally, the occlusion factor is divided by the number of samples. The ambient occlusion factor will be between one and zero, with zero meaning that the fragment is fully occluded.
 
+## Wavy water
+In order to make the water more realistic, we modified the vertex y positions (depending on time information) based on sinusodial approach.
+As we were asked to implement the noise by other algorithms we used a 3rd party library (listed in references) to deviate further the vertices.
+
+## Distortion of water (not implemented due to time constraints)
+In order to make water more realistic we would have liked to deviate the fragment normals covering deviation in each direction (x, -x, y, -y, z, -z).
+This could have be done by a noise function in range of (-1, 1). The result would have modified the final reflected color by SSR.
 
 # Results
 
@@ -151,9 +158,11 @@ we would be glad to explain how to install the shaderpack to try for themselves.
 - Bloom
 
 ### Szabina
-- Intial setup and understanding how to interact with the Minecraft rendering pipeline.
-- Wavy Water
-- Screen Space Reflections
+- Understanding how to interact with the Minecraft rendering pipeline
+- Screen Space Reflection
+- Wavy water
+- Understanding the concept of distortion in water
+
 ### Erik
 - Intial setup and understanding how to interact with the Minecraft rendering pipeline.
 - Ambient Occlusion
@@ -161,8 +170,9 @@ we would be glad to explain how to install the shaderpack to try for themselves.
 
 # References
 <!-- TODO Comment these references -->
-- https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/shaders.txt
-- https://github.com/lettier/3d-game-shaders-for-beginners
-- https://learnopengl.com/
-- https://pastebin.com/aB5MJ7aN
+- https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/shaders.txt (documentation of the optifine Mod)
+- https://github.com/lettier/3d-game-shaders-for-beginners (understanding SSR)
+- https://pastebin.com/aB5MJ7aN (understanding optifine's rendering pipeline)
+- https://learnopengl.com/Advanced-Lighting/SSAO (to understand the algorithm for AO)
+- https://github.com/ashima/webgl-noise/tree/master/src (noise implementation for water vertex deviation other than sinusodial)
 
