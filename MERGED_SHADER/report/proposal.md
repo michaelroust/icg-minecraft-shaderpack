@@ -149,6 +149,7 @@ We also built a custom map to showcase each feature individually, just drag the 
 - Soft Shadows
 - Bloom
 - Helped the others with their contributions
+- Merging our different shaders to work together as a full shader pack
 
 ### Szabina
 - Understanding how to interact with the Minecraft rendering pipeline
