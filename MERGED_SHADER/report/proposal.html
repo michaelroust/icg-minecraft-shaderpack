@@ -70,7 +70,7 @@
 <h3 id="algorithm-in-general-1">Algorithm in general</h3>
 <p>We decided to go with screen space ambient occlusion for performance reasons. We compute an occlusion factor per fragment based on the fragment’s surrounding depth values. The factor is obtained by taking random samples within a unit hemisphere around the fragment’s position and then comparing the depth values of each sample with the depth value of the fragment itself.</p>
 <figure>
-<img src="images/ao.png" alt="" /><figcaption>SSR</figcaption>
+<img src="images/ao.png" alt="" /><figcaption>AO</figcaption>
 </figure>
 <h3 id="our-implementation-1">Our implementation</h3>
 <p>The random samples are obtained from the noise texture. We then linearly interpolate the samples to have more samples closer to the fragment itself. We also add a random rotation when transforming the hemisphere from tangent to view space in order to reduce the number of samples required to obtain useful information. We then get the sample’s position in view space based on the fragment’s position in view space. We then get the depth of both the sample and the fragment. If the depth of the sample is greater, the occlusion factor will increase by one. Finally, the occlusion factor is divided by the number of samples. The ambient occlusion factor will be between one and zero, with zero meaning that the fragment is fully occluded.</p>
@@ -86,6 +86,7 @@
 <li>Intial setup and understanding how to interact with the Minecraft rendering pipeline.</li>
 <li>Soft Shadows</li>
 <li>Bloom</li>
+<li>Helped the others with their contributions</li>
 </ul>
 <h3 id="szabina">Szabina</h3>
 <ul>

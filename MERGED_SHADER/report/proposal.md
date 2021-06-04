@@ -112,7 +112,7 @@ These coordinates are then transformed back to screen space. We check in screen 
 We decided to go with screen space ambient occlusion for performance reasons. We compute an occlusion factor per fragment based on the fragment's surrounding
 depth values. The factor is obtained by taking random samples within a unit hemisphere around the fragment's position and then comparing the depth values of each sample with the depth value of the fragment itself.
 
-![SSR](images/ao.png)
+![AO](images/ao.png)
 
 
 ### Our implementation
@@ -148,6 +148,7 @@ We also built a custom map to showcase each feature individually, just drag the 
 - Intial setup and understanding how to interact with the Minecraft rendering pipeline.
 - Soft Shadows
 - Bloom
+- Helped the others with their contributions
 
 ### Szabina
 - Understanding how to interact with the Minecraft rendering pipeline
