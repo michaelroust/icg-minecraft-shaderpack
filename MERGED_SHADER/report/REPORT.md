@@ -135,9 +135,6 @@ This could have be done by a noise function in range of (-1, 1). The result woul
 
 # Results
 
-<!-- TODO Insert extra images as suggested on
-https://lgg.epfl.ch/teaching/ICG20/icg_lectures/2021_project_instructions/#final-deliverables -->
-
 Unfortunately, we only realised how weakly documented this Minecraft
 extension is and took a significant amount of time to understand how to get
 going. Due to this we were unable to incorporate Perlin noise into our waves
@@ -148,6 +145,8 @@ significantly harder project but it feels like we learned more about
 game rendering pipelines and producted something that you can actually play
 with and not only demonstrate in a 2min video. To whom may be interested
 we would be glad to explain how to install the shaderpack to try for themselves.
+
+We also built a custom map to showcase each feature individually, just drag the folder `ICG Demo G24` into your minecraft saves folder and launch minecraft with our shader to see each of the features. We have also included a separate video that gives a full tour of our map. 
 
 # Team contributions
 
@@ -166,6 +165,7 @@ we would be glad to explain how to install the shaderpack to try for themselves.
 ### Erik
 - Intial setup and understanding how to interact with the Minecraft rendering pipeline.
 - Ambient Occlusion
+- Build of the demonstration scene
 - Video Demonstration
 
 # References

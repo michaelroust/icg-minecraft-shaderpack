@@ -15,7 +15,7 @@ const float ambientOcclusionLevel = 0.0;
 const int noiseTextureResolution = 64;
 
 #define AO_DETAIL 128
-#define AO_STRENGTH 1.25
+#define AO_STRENGTH 1.0
 
 vec3 screenToViewPos(vec3 screenPos) {
 	vec3 clipPos = screenPos * 2.0 - 1.0;
@@ -49,7 +49,7 @@ float computeAO(float depth){
 	mat3 TBN = mat3(tangent, bitangent, normal);
 
 	int numberSamples = AO_DETAIL;
-	float radius = 1.25;
+	float radius = 0.75;
 
 	for (int i = 0; i < numberSamples; i++) {
 
