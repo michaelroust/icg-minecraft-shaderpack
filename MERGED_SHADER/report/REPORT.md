@@ -108,6 +108,14 @@ You find line by line documentation in the water shader final pass.
 We get the color information of the fragment from the color texture stored by previous shaders. We check the entity, in case of water we do launch the ray marching algorithm with parameters; forward ray, normal and reflected ray in view space. All three coordinates are known for the sampled point.
 These coordinates are then transformed back to screen space. We check in screen space the corresponding real depth coordinate of the sampled fragment. The real coordinates are then transformed back to view space. In view space we can check the difference between the sampled depth coordinate (calculated by the addition of the forward ray and reflected ray) and the real coordinates. If the difference is small enough we can start a refinement pass and modify the incremented vector accordingly. If there was no hit, difference is larger then expected, we continue with the rough pass. We adjust the visibility at the borders.
 
+## Wavy water
+In order to make the water more realistic, we modified the vertex y positions (depending on time information) based on sinusodial approach.
+As we were asked to implement the noise by other algorithms we used a 3rd party library (listed in references) to deviate further the vertices.
+
+## Distortion of water (not implemented due to time constraints)
+In order to make water more realistic we would have liked to deviate the fragment normals covering deviation in each direction (x, -x, y, -y, z, -z).
+This could have be done by a noise function in range of (-1, 1). The result would have modified the final reflected color by SSR.
+
 # Results
 
 <!-- TODO Insert extra images as suggested on
@@ -136,6 +144,10 @@ we would be glad to explain how to install the shaderpack to try for themselves.
 - Screen space reflections 10%
 
 ### Szabina
+- Understanding how to interact with the Minecraft rendering pipeline
+- Screen Space Reflection
+- Wavy water
+- Understanding the concept of distortion in water
 
 ### Erik
 
@@ -144,7 +156,8 @@ we would be glad to explain how to install the shaderpack to try for themselves.
 # References
 <!-- TODO Comment these references -->
 - https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/shaders.txt
-- https://github.com/lettier/3d-game-shaders-for-beginners
+- https://github.com/lettier/3d-game-shaders-for-beginners (understanding SSR)
 - https://learnopengl.com/
 - https://pastebin.com/aB5MJ7aN
+- https://github.com/ashima/webgl-noise/tree/master/src (noise implementation for water vertex deviation other than sinusodial)
 
