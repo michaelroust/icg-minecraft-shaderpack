@@ -1,7 +1,3 @@
----
-title: Final Report - Minecraft Shader Pack
----
-
 Group 24 - Michael Roust, Szabina Horvath-Mikulas, Erik Wengle
 
 ![Comparison](images/comparison.png)
