@@ -1,4 +1,4 @@
-Group 24 - Michael Roust, Szabina Horvath-Mikulas, Erik Wengle
+# Introdution to Computer Graphics Project - Minecraft Shaderpack
 
 ![Comparison](images/comparison.png)
 Left: Before our shaderpack, Right: After
